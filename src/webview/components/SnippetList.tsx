@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Snippet, Group } from "../types";
 import Button from "./common/Button";
 import { useSortable } from "@dnd-kit/sortable";
@@ -43,6 +44,74 @@ export const SnippetItem: React.FC<SnippetItemProps> = ({
   onMenuToggle,
 }) => {
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
+  const tooltipRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (showTooltip && tooltipRef.current && wrapperRef.current) {
+      const updatePosition = () => {
+        if (!tooltipRef.current || !wrapperRef.current) {
+          return;
+        }
+        
+        const wrapperRect = wrapperRef.current.getBoundingClientRect();
+        const tooltipRect = tooltipRef.current.getBoundingClientRect();
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        
+        const tooltipWidth = tooltipRect.width || 400;
+        const tooltipHeight = tooltipRect.height || 100;
+        const spaceOnRight = viewportWidth - wrapperRect.right;
+        const spaceOnLeft = wrapperRect.left;
+        
+        let left: number;
+        let top: number;
+        
+        const minSpaceRequired = tooltipWidth + 16;
+        
+        if (spaceOnRight >= minSpaceRequired) {
+          left = wrapperRect.right + 8;
+        } else if (spaceOnLeft >= minSpaceRequired) {
+          left = wrapperRect.left - tooltipWidth - 8;
+        } else {
+          if (spaceOnRight > spaceOnLeft) {
+            left = wrapperRect.right + 8;
+            if (left + tooltipWidth > viewportWidth - 8) {
+              left = Math.max(8, viewportWidth - tooltipWidth - 8);
+            }
+          } else {
+            left = wrapperRect.left - tooltipWidth - 8;
+            if (left < 8) {
+              left = 8;
+            }
+          }
+        }
+        
+        top = wrapperRect.bottom + 8;
+        if (top + tooltipHeight > viewportHeight - 8) {
+          top = Math.max(8, wrapperRect.top - tooltipHeight - 8);
+        }
+        
+        setTooltipStyle({
+          left: `${left}px`,
+          top: `${top}px`,
+        });
+      };
+      
+      setTimeout(updatePosition, 0);
+      const resizeObserver = new ResizeObserver(updatePosition);
+      resizeObserver.observe(tooltipRef.current);
+      
+      return () => {
+        resizeObserver.disconnect();
+      };
+    }
+  }, [showTooltip]);
+
+  const handleMouseEnter = () => {
+    setShowTooltip(true);
+  };
 
   return (
     <div className="snippet-item">
@@ -64,10 +133,10 @@ export const SnippetItem: React.FC<SnippetItemProps> = ({
           </div>
         )}
       </div>
-      {/* ▼ カスタムツールチップ */}
       <div
+        ref={wrapperRef}
         className="tooltip-wrapper"
-        onMouseEnter={() => setShowTooltip(true)}
+        onMouseEnter={handleMouseEnter}
         onMouseLeave={() => setShowTooltip(false)}
         style={{ position: "relative" }}>
         <Button
@@ -77,15 +146,21 @@ export const SnippetItem: React.FC<SnippetItemProps> = ({
           {snippet.name}
         </Button>
 
-        {showTooltip && (
-          <div className="custom-tooltip">
-            {snippet.command.map((cmd, i) => (
-              <div key={i}>{`${i + 1}. ${cmd}`}</div>
-            ))}
-          </div>
-        )}
+        {showTooltip &&
+          createPortal(
+            <div
+              ref={tooltipRef}
+              className="custom-tooltip"
+              style={tooltipStyle}
+              onMouseEnter={() => setShowTooltip(true)}
+              onMouseLeave={() => setShowTooltip(false)}>
+              {snippet.command.map((cmd, i) => (
+                <div key={i} className="tooltip-command-line">{`${i + 1}. ${cmd}`}</div>
+              ))}
+            </div>,
+            document.body
+          )}
       </div>
-      {/* ▲ カスタムツールチップ */}
     </div>
   );
 };

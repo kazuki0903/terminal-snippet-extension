@@ -408,23 +408,31 @@ body[style] {
 
 /* --- VSCodeテーマに合わせたカスタムツールチップ --- */
 .custom-tooltip {
-  position: absolute;
-  top: 0;
-  left: 100%;
-  margin-left: -60px; /* ← 少し重ねたい場合（調整可） */
-  padding: 6px 8px;
+  position: fixed;
+  padding: 8px 12px;
   background: var(--vscode-editorHoverWidget-background);
   color: var(--vscode-editorHoverWidget-foreground);
   border: 1px solid var(--vscode-editorHoverWidget-border);
-  white-space: pre;
-  z-index: 999;
+  z-index: 999999;
   border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  min-width: 200px;
+  word-wrap: break-word;
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.tooltip-command-line {
+  margin: 2px 0;
+  white-space: normal;
+  word-break: break-all;
 }
 
 .tooltip-wrapper {
   width: 100%;
   display: block;
-  position: relative; /* すでに指定済みなら不要 */
+  position: relative;
 }
 
 /* フォームのラベル */
